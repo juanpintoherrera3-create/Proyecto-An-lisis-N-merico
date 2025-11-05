@@ -1,0 +1,118 @@
+---
+title: "Proyecto Análisis Númerico"
+author: "Juan Camilo Pinto"
+output: word_document
+---
+
+```{r}
+#install.packages("dplyr")
+#install.packages("caret")
+#install.packages("haven")
+#install.packages("ROSE")
+#install.packages("imbalance")
+#install.packages("smotefamily")
+```
+
+```{r}
+library(dplyr)
+library(caret) 
+library(haven)
+library(ROSE)
+library(imbalance)
+library(smotefamily)
+```
+
+```{r}
+library(readxl)
+Basei <- read_excel("C:/Users/Aulasmoviles/Desktop/Proyecto Análisis Númerico/Ventas 2022-02_2025.xlsx")
+```
+
+```{r}
+Base <- Basei
+y <- Base$FormaDePago   
+articulo <- Base$Artículo  
+servicio <- Base$Servicio  
+importe <- Base$Importe #cuantitativo 
+delegacion <- Base$Delegacion 
+
+base1 <- data.frame(y,articulo, servicio, importe,delegacion) 
+ 
+base2 <- na.omit(base1) 
+ 
+basef <- base2
+ 
+basef$y <- ifelse(basef$y == "Cuotas", 1, 0) 
+basef$y <- as.factor(basef$y)
+ 
+basef$articulo <- as.factor(basef$articulo)
+ 
+
+basef$servicio <- as.factor(basef$servicio)
+ 
+basef$importe <- as.factor(basef$importe)
+ 
+
+basef$delegacion <- as.factor(basef$delegacion)
+```
+
+```{r}
+chisq.test(xtabs(~y + articulo, data = basef),correct = F)#Con P-valor = p-value =9.18e-09, se RECHAZA Ho por lo tanto sexo debe ir en el modelo 
+
+chisq.test(xtabs(~y + servicio, data = basef),correct = F)#Con P-valor = p-value =2.2e-16, se RECHAZA Ho por lo tanto educa debe ir en el modelo 
+
+chisq.test(xtabs(~y + importe, data = basef),correct = F)#Con P-valor = p-value =2.2e-16, se RECHAZA Ho por lo tanto contrato debe ir en el modelo 
+
+chisq.test(xtabs(~y + delegacion, data = basef),correct = F)#Con P-valor = p-value 2.084e-08, se RECHAZA Ho por lo tanto estrato debe ir en el modelo 
+
+```
+
+```{r}
+table(basef$y)
+```
+
+```{r}
+cat_mayor <- basef%>% filter (y==1) 
+cat_menor <- basef%>% filter (y==0) 
+
+set.seed(1234)
+mayor_muestra <- sample_n(cat_mayor, nrow(cat_menor))
+
+basef_balanceada <- bind_rows(mayor_muestra, cat_menor)
+table(basef_balanceada$y)
+```
+
+```{r}
+library(caret)
+BaseEntrenamiento <- createDataPartition(y = basef_balanceada$y, p = 0.8,
+                                         list = F)
+Entrenamiento <- basef_balanceada[BaseEntrenamiento,]
+Test <- basef_balanceada [-BaseEntrenamiento,]
+dim(Entrenamiento);dim(Test)
+```
+
+```{r}
+modelo1 <- glm(y ~ ., data = basef_balanceada, family = "binomial")
+summary(modelo1)
+```
+
+```{r}
+entrenamientof <- predict(modelo1, newdata = Test, type = "response")
+head(entrenamientof)
+```
+
+```{r}
+Informal <- factor(ifelse(entrenamientof > 0.7, 1, 0)) 
+
+levels(Informal) <- c("Si", "No")
+levels(Test$y) <- c("Si", "No")
+
+confusionMatrix(Informal,
+                Test$y,
+                positive = "Si",
+                mode = "everything")
+```
+
+```{r}
+modelo <- glm(y ~ ., data = basef_balanceada, family = "binomial")
+summary(modelo1)
+```
