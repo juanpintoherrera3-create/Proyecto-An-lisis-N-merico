@@ -66,10 +66,133 @@ cat("Train:", nrow(train), "Test:", nrow(test), "\n")
 ```
 
 ```{r}
-modelo_logit <- glm(y ~ importe + delegacion + articulo,
+modelo_logit <- glm(y ~ importe + delegacion +servicio,
                     data = train, family = binomial(link = "logit"))
 summary(modelo_logit)
 ```
+
+
+## Interpretación de los coeficientes del modelo
+
+### Variable: Importe
+- **Coeficiente:** -8.064e-03  
+- **Error estándar:** 1.187e-04  
+- **Valor z:** -67.939  
+- **p-valor:** < 2e-16 ***  
+**Interpretación:** A medida que aumenta el importe de la venta, **disminuye** la probabilidad de que el cliente elija pagar a cuotas.  
+En otras palabras, **los pagos grandes tienden a realizarse más en modalidad prepago**, posiblemente porque quienes compran en grandes montos prefieren cerrar la transacción de inmediato.
+
+---
+
+### Variable: Delegación Brasil
+- **Coeficiente:** 3.707e-01  
+- **Error estándar:** 1.080e-01  
+- **Valor z:** 3.431  
+- **p-valor:** 0.000602 ***  
+**Interpretación:** Estar en la delegación de **Brasil** **aumenta** la probabilidad de pagar a cuotas en comparación con la categoría base (posiblemente otra delegación no listada).  
+Esto sugiere que en Brasil el comportamiento de pago es más propenso al financiamiento o pago diferido.
+
+---
+
+### Variable: Delegación Chile
+- **Coeficiente:** 5.099e-01  
+- **Error estándar:** 1.364e-01  
+- **Valor z:** 3.737  
+- **p-valor:** 0.000186 ***  
+**Interpretación:** Los clientes de **Chile** tienen **mayor probabilidad** de pagar a cuotas que los de la delegación de referencia.  
+Podría reflejar una cultura de consumo más inclinada hacia los pagos fraccionados.
+
+---
+
+### Variable: Delegación Colombia
+- **Coeficiente:** 4.451e-01  
+- **Error estándar:** 1.826e-01  
+- **Valor z:** 2.438  
+- **p-valor:** 0.014766 *  
+**Interpretación:** En **Colombia**, los clientes también presentan una **mayor probabilidad** de elegir la modalidad de pago a cuotas.  
+El efecto es moderado pero estadísticamente significativo.
+
+---
+
+### Variable: Delegación España
+- **Coeficiente:** 3.931e-01  
+- **Error estándar:** 8.919e-02  
+- **Valor z:** 4.407  
+- **p-valor:** 1.05e-05 ***  
+**Interpretación:** En **España**, los clientes tienden significativamente a **pagar a cuotas** con respecto a la delegación de referencia.  
+Es uno de los efectos más claros del modelo dentro de las delegaciones europeas.
+
+---
+
+### Variable: Delegación Francia
+- **Coeficiente:** 1.799e-01  
+- **Error estándar:** 8.035e-02  
+- **Valor z:** 2.239  
+- **p-valor:** 0.025170 *  
+**Interpretación:** Los clientes franceses tienen una **ligera mayor probabilidad** de pagar a cuotas, aunque el efecto es menor en comparación con otros países latinoamericanos.
+
+---
+
+### Variable: Delegación Italia
+- **Coeficiente:** -4.400e-02  
+- **Error estándar:** 7.856e-02  
+- **Valor z:** -0.560  
+- **p-valor:** 0.575408 (no significativo)  
+**Interpretación:** No hay evidencia estadísticamente significativa de que pertenecer a la delegación **Italia** afecte la probabilidad de elegir pago a cuotas.  
+El comportamiento de pago parece similar al del país de referencia.
+
+---
+
+### Variable: Delegación México
+- **Coeficiente:** 5.748e-01  
+- **Error estándar:** 2.055e-01  
+- **Valor z:** 2.797  
+- **p-valor:** 0.005155 **  
+**Interpretación:** Los clientes mexicanos presentan una **mayor probabilidad** de usar la modalidad a cuotas, en comparación con la delegación base.  
+El resultado es robusto y estadísticamente significativo.
+
+---
+
+### Variable: Delegación Portugal
+- **Coeficiente:** 1.066e+00  
+- **Error estándar:** 5.834e-01  
+- **Valor z:** 1.827  
+- **p-valor:** 0.067645 .  
+**Interpretación:** En **Portugal** se observa una **tendencia positiva** hacia los pagos a cuotas, aunque el efecto no es altamente significativo.  
+Podría ser un patrón incipiente más que una diferencia estructural.
+
+---
+
+### Variable: Servicio “Packs Presencial”
+- **Coeficiente:** -7.728e-01  
+- **Error estándar:** 1.236e-01  
+- **Valor z:** -6.253  
+- **p-valor:** 4.04e-10 ***  
+**Interpretación:** Elegir un **Pack Presencial** **reduce significativamente** la probabilidad de pagar a cuotas.  
+Esto indica que los servicios presenciales tienden a pagarse al contado, quizá por menor ticket promedio o política comercial.
+
+---
+
+### Variable: Servicio “Suscripciones Online”
+- **Coeficiente:** 1.858e+01  
+- **Error estándar:** 2.925e+02  
+- **Valor z:** 0.063  
+- **p-valor:** 0.949370 (no significativo)  
+**Interpretación:** No hay evidencia de que las **Suscripciones Online** afecten la probabilidad de pagar a cuotas.  
+El coeficiente grande y la alta incertidumbre indican que el modelo no logra estimar bien este efecto (posiblemente por escasa representación o colinealidad).
+
+---
+
+### Variable: Servicio “Suscripciones Presencial”
+- **Coeficiente:** 1.794e+01  
+- **Error estándar:** 7.641e+01  
+- **Valor z:** 0.235  
+- **p-valor:** 0.814380 (no significativo)  
+**Interpretación:** Tampoco hay evidencia de que las **Suscripciones Presenciales** influyan en la elección de pago.  
+El alto error estándar sugiere inestabilidad del parámetro, por lo que la variable podría considerarse prescindible en futuras versiones del modelo.
+
+
+
 
 ```{r}
 vif_vals <- vif(modelo_logit)
