@@ -1,9 +1,9 @@
 ---
-title: "Proyecto Análisis Númerico V.2"
+title: "Proyecto Análisis Numérico V.2"
 output: word_document
 ---
 
-```{r}
+```{r setup}
 library(tidyverse)
 library(lubridate)
 library(readxl)
@@ -16,9 +16,9 @@ library(dplyr)
 library(haven)
 library(imbalance)
 library(smotefamily)
-
 ```
 
+# 1. Carga y limpieza de datos
 ```{r}
 Basei <- read_excel("Ventas 2022-02_2025.xlsx")
 
@@ -26,69 +26,66 @@ Base <- Basei
 y <- Base$FormaDePago   
 articulo <- Base$Artículo  
 servicio <- Base$Servicio  
-importe <- Base$Importe #cuantitativo 
+importe <- Base$Importe
 delegacion <- Base$Delegacion 
 
-base1 <- data.frame(y,articulo, servicio, importe,delegacion) 
- 
-base2 <- na.omit(base1) 
- 
+base1 <- data.frame(y, articulo, servicio, importe, delegacion) 
+base2 <- na.omit(base1)
 basef <- base2
- 
-basef$y <- ifelse(basef$y == "Cuotas", 1, 0) 
+
+# Recodificación
+basef$y <- ifelse(basef$y == "Cuotas", 1, 0)
 basef$y <- as.factor(basef$y)
- 
+
 basef$articulo <- as.factor(basef$articulo)
- 
-
 basef$servicio <- as.factor(basef$servicio)
- 
-basef$importe <- as.factor(basef$importe)
- 
-
 basef$delegacion <- as.factor(basef$delegacion)
+
+# En lugar de factorizar importe, lo tratamos como numérico
+basef$importe <- as.numeric(basef$importe)
 ```
 
-
+# 2. Pruebas Chi-cuadrado para selección de variables
 ```{r}
-chisq.test(xtabs(~y + articulo, data = basef),correct = F)#Con P-valor = p-value =__, se RECHAZA Ho por lo tanto __- debe ir en el modelo 
-
-chisq.test(xtabs(~y + servicio, data = basef),correct = F)#Con P-valor = p-value =___, se RECHAZA Ho por lo tanto ___ debe ir en el modelo 
-
-chisq.test(xtabs(~y + importe, data = basef),correct = F)#Con P-valor = p-value =___, se RECHAZA Ho por lo tanto ___ debe ir en el modelo 
-
-chisq.test(xtabs(~y + delegacion, data = basef),correct = F)#Con P-valor = p-value ____, se RECHAZA Ho por lo tanto ___ debe ir en el modelo 
-
+chisq.test(xtabs(~y + articulo, data = basef), correct = F)
+chisq.test(xtabs(~y + servicio, data = basef), correct = F)
+chisq.test(xtabs(~y + delegacion, data = basef), correct = F)
 ```
 
+# 3. Balanceo de clases
 ```{r}
 set.seed(123)
-# calcular tamaño objetivo: duplicar la clase minoritaria
-n_min <- min(table(basef$FormaPago_bin))
-ventas_bal <- ovun.sample(FormaPago_bin ~ ., data = ventas, method = "both", N = n_min*2)$data
+n_min <- min(table(basef$y))
+base_bal <- ovun.sample(y ~ ., data = basef, method = "both", N = n_min * 2)$data
 
-table(ventas_bal$FormaPago_bin)
+table(base_bal$y)
 ```
 
+# 4. División entrenamiento / prueba
 ```{r}
-train <- ventas_bal %>% filter(Año <= 2023)
-test  <- ventas_bal %>% filter(Año > 2023)
+set.seed(123)
+train_index <- createDataPartition(base_bal$y, p = 0.7, list = FALSE)
+train <- base_bal[train_index, ]
+test  <- base_bal[-train_index, ]
 
 cat("Train:", nrow(train), "Test:", nrow(test), "\n")
 ```
 
+# 5. Modelo Logit
 ```{r}
-modelo_logit <- glm(FormaPago_bin ~ log_importe + Delegacion + Artículo + Año + Mes,
+modelo_logit <- glm(y ~ importe + delegacion + articulo,
                     data = train, family = binomial(link = "logit"))
 summary(modelo_logit)
 ```
 
-```{r vif}
+# 6. Diagnóstico de colinealidad
+```{r}
 vif_vals <- vif(modelo_logit)
 vif_vals
 ```
 
-```{r odds_margins}
+# 7. Odds Ratios y efectos marginales
+```{r}
 odds_ratios <- exp(coef(modelo_logit))
 odds_ratios
 
@@ -96,31 +93,46 @@ mfx <- margins(modelo_logit)
 summary(mfx)
 ```
 
-```{r evaluacion}
+# 8. Evaluación del modelo
+```{r}
 test$pred_prob <- predict(modelo_logit, newdata = test, type = "response")
-roc_obj <- roc(test$FormaPago_bin, test$pred_prob)
-auc_val <- auc(roc_obj)
-auc_val
 
-# matriz de confusión con umbral 0.5
+roc_obj <- roc(test$y, test$pred_prob)
+auc_val <- auc(roc_obj)
+cat("AUC:", auc_val, "\n")
+
+# Matriz de confusión
 test$pred_bin <- if_else(test$pred_prob >= 0.5, 1, 0)
-conf_mat <- caret::confusionMatrix(factor(test$pred_bin), factor(test$FormaPago_bin), positive = "1")
+conf_mat <- caret::confusionMatrix(factor(test$pred_bin), factor(test$y), positive = "1")
 conf_mat
 ```
 
-```{r graficos, fig.width=8, fig.height=4}
-library(ggplot2)
-p1 <- ggplot(test, aes(x = pred_prob, fill = factor(FormaPago_bin))) +
+# 9. Visualizaciones
+```{r fig.width=8, fig.height=4}
+p1 <- ggplot(test, aes(x = pred_prob, fill = factor(y))) +
   geom_density(alpha = 0.4) +
-  labs(title = "Distribución de probabilidades predichas", x = "Probabilidad estimada de Prepago", fill = "Forma real") +
+  labs(title = "Distribución de probabilidades predichas", 
+       x = "Probabilidad estimada de Cuotas (1)", fill = "Forma real") +
   theme_minimal()
 
-p2 <- ggplot(train, aes(x = log_importe, y = FormaPago_bin)) +
-  geom_jitter(height = 0.02, alpha = 0.2) +
+p2 <- ggplot(train, aes(x = importe, y = as.numeric(y))) +
+  geom_jitter(height = 0.05, alpha = 0.3) +
   geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE) +
-  labs(title = "Relación entre log_importe y probabilidad de Prepago", x = "log_importe", y = "Prepago (1) / Cuotas (0)") +
+  labs(title = "Relación entre Importe y probabilidad de Cuotas",
+       x = "Importe", y = "Probabilidad estimada") +
   theme_minimal()
 
 print(p1)
 print(p2)
+```
+
+# 10. Matriz de confusión visual
+```{r}
+cm_table <- as.data.frame(conf_mat$table)
+ggplot(cm_table, aes(x = Reference, y = Prediction, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq), color = "white", size = 6) +
+  scale_fill_gradient(low = "steelblue", high = "darkred") +
+  labs(title = "Matriz de Confusión", x = "Valor real", y = "Predicción") +
+  theme_minimal()
 ```
