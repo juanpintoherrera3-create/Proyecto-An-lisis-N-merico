@@ -1,5 +1,5 @@
 ---
-title: "Proyecto Análisis Numérico V.2"
+title: "Proyecto Análisis Numérico V.3"
 output: word_document
 ---
 
@@ -84,17 +84,26 @@ vif_vals <- vif(modelo_logit)
 vif_vals
 ```
 
-# 7. Odds Ratios y efectos marginales
+# 7. Odds Ratios y efectos marginales (corrección de niveles)
 ```{r}
 odds_ratios <- exp(coef(modelo_logit))
 odds_ratios
 
-mfx <- margins(modelo_logit)
+# Eliminar niveles no usados
+train <- droplevels(train)
+
+# Calcular efectos marginales sobre el conjunto limpio
+mfx <- margins(modelo_logit, data = train)
 summary(mfx)
 ```
 
-# 8. Evaluación del modelo
+# 8. Evaluación del modelo (ajuste de niveles en test)
 ```{r}
+# Asegurar que test tenga los mismos niveles que train
+for (col in c("articulo", "delegacion")) {
+  test[[col]] <- factor(test[[col]], levels = levels(train[[col]]))
+}
+
 test$pred_prob <- predict(modelo_logit, newdata = test, type = "response")
 
 roc_obj <- roc(test$y, test$pred_prob)
