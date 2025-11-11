@@ -1,0 +1,126 @@
+---
+title: "Proyecto Análisis Númerico V.2"
+output: word_document
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(readxl)
+library(caret)
+library(car)
+library(pROC)
+library(margins)
+library(ROSE)
+library(dplyr)
+library(haven)
+library(imbalance)
+library(smotefamily)
+
+```
+
+```{r}
+Basei <- read_excel("Ventas 2022-02_2025.xlsx")
+
+Base <- Basei
+y <- Base$FormaDePago   
+articulo <- Base$Artículo  
+servicio <- Base$Servicio  
+importe <- Base$Importe #cuantitativo 
+delegacion <- Base$Delegacion 
+
+base1 <- data.frame(y,articulo, servicio, importe,delegacion) 
+ 
+base2 <- na.omit(base1) 
+ 
+basef <- base2
+ 
+basef$y <- ifelse(basef$y == "Cuotas", 1, 0) 
+basef$y <- as.factor(basef$y)
+ 
+basef$articulo <- as.factor(basef$articulo)
+ 
+
+basef$servicio <- as.factor(basef$servicio)
+ 
+basef$importe <- as.factor(basef$importe)
+ 
+
+basef$delegacion <- as.factor(basef$delegacion)
+```
+
+
+```{r}
+chisq.test(xtabs(~y + articulo, data = basef),correct = F)#Con P-valor = p-value =__, se RECHAZA Ho por lo tanto __- debe ir en el modelo 
+
+chisq.test(xtabs(~y + servicio, data = basef),correct = F)#Con P-valor = p-value =___, se RECHAZA Ho por lo tanto ___ debe ir en el modelo 
+
+chisq.test(xtabs(~y + importe, data = basef),correct = F)#Con P-valor = p-value =___, se RECHAZA Ho por lo tanto ___ debe ir en el modelo 
+
+chisq.test(xtabs(~y + delegacion, data = basef),correct = F)#Con P-valor = p-value ____, se RECHAZA Ho por lo tanto ___ debe ir en el modelo 
+
+```
+
+```{r}
+set.seed(123)
+# calcular tamaño objetivo: duplicar la clase minoritaria
+n_min <- min(table(basef$FormaPago_bin))
+ventas_bal <- ovun.sample(FormaPago_bin ~ ., data = ventas, method = "both", N = n_min*2)$data
+
+table(ventas_bal$FormaPago_bin)
+```
+
+```{r}
+train <- ventas_bal %>% filter(Año <= 2023)
+test  <- ventas_bal %>% filter(Año > 2023)
+
+cat("Train:", nrow(train), "Test:", nrow(test), "\n")
+```
+
+```{r}
+modelo_logit <- glm(FormaPago_bin ~ log_importe + Delegacion + Artículo + Año + Mes,
+                    data = train, family = binomial(link = "logit"))
+summary(modelo_logit)
+```
+
+```{r vif}
+vif_vals <- vif(modelo_logit)
+vif_vals
+```
+
+```{r odds_margins}
+odds_ratios <- exp(coef(modelo_logit))
+odds_ratios
+
+mfx <- margins(modelo_logit)
+summary(mfx)
+```
+
+```{r evaluacion}
+test$pred_prob <- predict(modelo_logit, newdata = test, type = "response")
+roc_obj <- roc(test$FormaPago_bin, test$pred_prob)
+auc_val <- auc(roc_obj)
+auc_val
+
+# matriz de confusión con umbral 0.5
+test$pred_bin <- if_else(test$pred_prob >= 0.5, 1, 0)
+conf_mat <- caret::confusionMatrix(factor(test$pred_bin), factor(test$FormaPago_bin), positive = "1")
+conf_mat
+```
+
+```{r graficos, fig.width=8, fig.height=4}
+library(ggplot2)
+p1 <- ggplot(test, aes(x = pred_prob, fill = factor(FormaPago_bin))) +
+  geom_density(alpha = 0.4) +
+  labs(title = "Distribución de probabilidades predichas", x = "Probabilidad estimada de Prepago", fill = "Forma real") +
+  theme_minimal()
+
+p2 <- ggplot(train, aes(x = log_importe, y = FormaPago_bin)) +
+  geom_jitter(height = 0.02, alpha = 0.2) +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE) +
+  labs(title = "Relación entre log_importe y probabilidad de Prepago", x = "log_importe", y = "Prepago (1) / Cuotas (0)") +
+  theme_minimal()
+
+print(p1)
+print(p2)
+```
