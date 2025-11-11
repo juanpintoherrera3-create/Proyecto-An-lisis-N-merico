@@ -89,7 +89,7 @@ En otras palabras, **los pagos grandes tienden a realizarse más en modalidad pr
 - **Error estándar:** 1.080e-01  
 - **Valor z:** 3.431  
 - **p-valor:** 0.000602 ***  
-**Interpretación:** Estar en la delegación de **Brasil** **aumenta** la probabilidad de pagar a cuotas en comparación con la categoría base (posiblemente otra delegación no listada).  
+**Interpretación:** Estar en la delegación de **Brasil** **aumenta** la probabilidad de pagar a cuotas en comparación con la categoría base.
 Esto sugiere que en Brasil el comportamiento de pago es más propenso al financiamiento o pago diferido.
 
 ---
