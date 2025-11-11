@@ -32,7 +32,7 @@ base1 <- data.frame(y, articulo, servicio, importe, delegacion)
 base2 <- na.omit(base1)
 basef <- base2
 
-basef$y <- ifelse(basef$y == "Cuotas", 1, 0)
+basef$y <- ifelse(basef$y == "Prepago", 0, 1)
 basef$y <- as.factor(basef$y)
 
 basef$articulo <- as.factor(basef$articulo)
@@ -52,6 +52,9 @@ chisq.test(xtabs(~y + delegacion, data = basef), correct = F)
 set.seed(123)
 n_min <- min(table(basef$y))
 base_bal <- ovun.sample(y ~ ., data = basef, method = "both", N = n_min * 2)$data
+
+
+base_bal$y <- as.factor(base_bal$y)
 
 table(base_bal$y)
 ```
