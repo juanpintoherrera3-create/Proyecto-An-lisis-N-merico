@@ -24,7 +24,7 @@ library(smotefamily)
 
 ```{r}
 library(readxl)
-Basei <- read_excel("C:/Users/Aulasmoviles/Desktop/Proyecto Análisis Númerico/Ventas 2022-02_2025.xlsx")
+Basei <- read_excel("Ventas 2022-02_2025.xlsx")
 ```
 
 ```{r}
@@ -56,13 +56,13 @@ basef$delegacion <- as.factor(basef$delegacion)
 ```
 
 ```{r}
-chisq.test(xtabs(~y + articulo, data = basef),correct = F)#Con P-valor = p-value =9.18e-09, se RECHAZA Ho por lo tanto sexo debe ir en el modelo 
+chisq.test(xtabs(~y + articulo, data = basef),correct = F)#Con P-valor = p-value =__, se RECHAZA Ho por lo tanto __- debe ir en el modelo 
 
-chisq.test(xtabs(~y + servicio, data = basef),correct = F)#Con P-valor = p-value =2.2e-16, se RECHAZA Ho por lo tanto educa debe ir en el modelo 
+chisq.test(xtabs(~y + servicio, data = basef),correct = F)#Con P-valor = p-value =___, se RECHAZA Ho por lo tanto ___ debe ir en el modelo 
 
-chisq.test(xtabs(~y + importe, data = basef),correct = F)#Con P-valor = p-value =2.2e-16, se RECHAZA Ho por lo tanto contrato debe ir en el modelo 
+chisq.test(xtabs(~y + importe, data = basef),correct = F)#Con P-valor = p-value =___, se RECHAZA Ho por lo tanto ___ debe ir en el modelo 
 
-chisq.test(xtabs(~y + delegacion, data = basef),correct = F)#Con P-valor = p-value 2.084e-08, se RECHAZA Ho por lo tanto estrato debe ir en el modelo 
+chisq.test(xtabs(~y + delegacion, data = basef),correct = F)#Con P-valor = p-value ____, se RECHAZA Ho por lo tanto ___ debe ir en el modelo 
 
 ```
 
