@@ -18,7 +18,6 @@ library(imbalance)
 library(smotefamily)
 ```
 
-# 1. Carga y limpieza de datos
 ```{r}
 Basei <- read_excel("Ventas 2022-02_2025.xlsx")
 
@@ -33,7 +32,6 @@ base1 <- data.frame(y, articulo, servicio, importe, delegacion)
 base2 <- na.omit(base1)
 basef <- base2
 
-# Recodificación
 basef$y <- ifelse(basef$y == "Cuotas", 1, 0)
 basef$y <- as.factor(basef$y)
 
@@ -41,18 +39,15 @@ basef$articulo <- as.factor(basef$articulo)
 basef$servicio <- as.factor(basef$servicio)
 basef$delegacion <- as.factor(basef$delegacion)
 
-# En lugar de factorizar importe, lo tratamos como numérico
 basef$importe <- as.numeric(basef$importe)
 ```
 
-# 2. Pruebas Chi-cuadrado para selección de variables
 ```{r}
 chisq.test(xtabs(~y + articulo, data = basef), correct = F)
 chisq.test(xtabs(~y + servicio, data = basef), correct = F)
 chisq.test(xtabs(~y + delegacion, data = basef), correct = F)
 ```
 
-# 3. Balanceo de clases
 ```{r}
 set.seed(123)
 n_min <- min(table(basef$y))
@@ -61,7 +56,6 @@ base_bal <- ovun.sample(y ~ ., data = basef, method = "both", N = n_min * 2)$dat
 table(base_bal$y)
 ```
 
-# 4. División entrenamiento / prueba
 ```{r}
 set.seed(123)
 train_index <- createDataPartition(base_bal$y, p = 0.7, list = FALSE)
@@ -71,35 +65,28 @@ test  <- base_bal[-train_index, ]
 cat("Train:", nrow(train), "Test:", nrow(test), "\n")
 ```
 
-# 5. Modelo Logit
 ```{r}
 modelo_logit <- glm(y ~ importe + delegacion + articulo,
                     data = train, family = binomial(link = "logit"))
 summary(modelo_logit)
 ```
 
-# 6. Diagnóstico de colinealidad
 ```{r}
 vif_vals <- vif(modelo_logit)
 vif_vals
 ```
 
-# 7. Odds Ratios y efectos marginales (corrección de niveles)
 ```{r}
 odds_ratios <- exp(coef(modelo_logit))
 odds_ratios
 
-# Eliminar niveles no usados
 train <- droplevels(train)
 
-# Calcular efectos marginales sobre el conjunto limpio
 mfx <- margins(modelo_logit, data = train)
 summary(mfx)
 ```
 
-# 8. Evaluación del modelo (ajuste de niveles en test)
 ```{r}
-# Asegurar que test tenga los mismos niveles que train
 for (col in c("articulo", "delegacion")) {
   test[[col]] <- factor(test[[col]], levels = levels(train[[col]]))
 }
@@ -110,14 +97,12 @@ roc_obj <- roc(test$y, test$pred_prob)
 auc_val <- auc(roc_obj)
 cat("AUC:", auc_val, "\n")
 
-# Matriz de confusión
 test$pred_bin <- if_else(test$pred_prob >= 0.5, 1, 0)
 conf_mat <- caret::confusionMatrix(factor(test$pred_bin), factor(test$y), positive = "1")
 conf_mat
 ```
 
-# 9. Visualizaciones
-```{r fig.width=8, fig.height=4}
+```{r}
 p1 <- ggplot(test, aes(x = pred_prob, fill = factor(y))) +
   geom_density(alpha = 0.4) +
   labs(title = "Distribución de probabilidades predichas", 
@@ -135,7 +120,6 @@ print(p1)
 print(p2)
 ```
 
-# 10. Matriz de confusión visual
 ```{r}
 cm_table <- as.data.frame(conf_mat$table)
 ggplot(cm_table, aes(x = Reference, y = Prediction, fill = Freq)) +
