@@ -1,17 +1,7 @@
 ---
 title: "Proyecto Análisis Númerico"
-author: "Juan Camilo Pinto"
 output: word_document
 ---
-
-```{r}
-#install.packages("dplyr")
-#install.packages("caret")
-#install.packages("haven")
-#install.packages("ROSE")
-#install.packages("imbalance")
-#install.packages("smotefamily")
-```
 
 ```{r}
 library(dplyr)
