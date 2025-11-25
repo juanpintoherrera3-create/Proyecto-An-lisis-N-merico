@@ -59,7 +59,7 @@ table(base_bal$y)
 
 ```{r}
 modelo_logit <- glm(y ~ importe + delegacion +servicio,
-                    data = train, family = binomial(link = "logit"))
+                    data = base_bal, family = binomial(link = "logit"))
 summary(modelo_logit)
 ```
 
